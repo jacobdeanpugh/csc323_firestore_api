@@ -15,8 +15,12 @@ app.post("/users", async (req, res) => {
     if (!existingUser.empty) {
       return res.status(409).json({ error: "Username already exists" });
     }
+
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    console.log(`Received request to create user from IP: ${clientIP}`);
     
     const newUser = {
+      clientIP: clientIP,
       username: username,
       created_at: new Date().toISOString()
     };
@@ -75,35 +79,42 @@ app.post("/polls/:pollId/vote", async (req, res) => {
     const { pollId } = req.params;
     const { voter_id, option_selected } = req.body;
 
-     if(!voter_id || !option_selected) {
+     if(!option_selected) {
       return res.status(400).json({error: "Missing Fields"});
     }
 
-    // Check if user exists if not return 404
-    const userDoc = await db.collection("users").doc(voter_id).get();
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Check if poll exists and is open
     const pollDoc = await db.collection("polls").doc(pollId).get();
     if (!pollDoc.exists) {
       return res.status(404).json({ error: "Poll not found" });
     }
+
+    let actualVoterId;
+    if (voter_id) {
+      // Check if voter_id exists in users collection
+      const userDoc = await db.collection("users").doc(voter_id).get();
+      if (!userDoc.exists) {
+        return res.status(404).json({ error: "Voter ID not found" });
+      }
+      actualVoterId = voter_id;
+    } else {
+      // If no voter_id provided, use client IP as voter_id
+      actualVoterId = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    }
+
 
     const pollData = pollDoc.data();
     if (pollData.status !== 'open' || new Date(pollData.expiration_timestamp) < new Date()) {
       return res.status(400).json({ error: "Poll is closed" });
     }
 
-    const existingVote = await db.collection("votes").where("poll_id", "==", pollId).where("voter_id", "==", voter_id).get();
+    const existingVote = await db.collection("votes").where("poll_id", "==", pollId).where("voter_id", "==", actualVoterId).get();
     if (!existingVote.empty) {
       return res.status(409).json({ error: "User has already voted on this poll" });
     }
 
     const newVote = {
       poll_id: pollId,
-      voter_id: voter_id,
+      voter_id: actualVoterId,
       option_selected: option_selected,
       timestamp: new Date().toISOString()
     };
