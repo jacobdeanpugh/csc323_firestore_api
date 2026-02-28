@@ -96,8 +96,8 @@ app.post("/polls/:pollId/vote", async (req, res) => {
       }
       actualVoterId = voter_id;
     } else {
-      // Anonymous voting - use client IP
-      actualVoterId = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      // Anonymous voting - use client IP or connection info for unique identification
+      actualVoterId = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || "127.0.0.1";
     }
 
     // Check if poll exists and is open
@@ -125,11 +125,7 @@ app.post("/polls/:pollId/vote", async (req, res) => {
 
     await db.collection("votes").add(newVote);
 
-    // Update the total votes count in the poll document
-    const pollRef = db.collection("polls").doc(pollId);
-    await pollRef.update({
-      total_votes: admin.firestore.FieldValue.increment(1)
-    });
+    // Trigger function will handle incrementing total_votes
 
     res.status(200).json({ message: "Vote cast successfully" });
   } catch (error) {

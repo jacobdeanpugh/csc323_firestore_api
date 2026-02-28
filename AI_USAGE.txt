@@ -1,0 +1,120 @@
+AI USAGE DOCUMENTATION - CSC323 Homework 5: Firestore Polling API
+=====================================================================
+
+OVERVIEW
+--------
+This document outlines how Claude (Anthropic's AI assistant) was utilized during the development
+of the Firestore-based Polling API for CSC323 (Cloud Computing). Claude was used as a guidance
+and debugging tool, NOT for complete code generation.
+
+COMPLIANCE WITH GENAI POLICY
+-----------------------------
+Per the homework assignment guidelines:
+- ✓ ChatGPT/Claude used to explain concepts
+- ✓ ChatGPT/Claude used to debug and point out areas for improvement
+- ✓ ChatGPT/Claude used to write documentation
+- ✓ Code was manually implemented by the student
+- ✓ Claude did NOT generate complete solutions
+
+AI ASSISTANCE BREAKDOWN
+-----------------------
+
+1. PROJECT SETUP & DOCUMENTATION (Heavy AI Usage)
+   - Created CLAUDE.md with architecture overview, deployment commands, and debugging tips
+   - Generated comprehensive .gitignore for Firebase/Cloud Functions projects
+   - Explained Firebase Cloud Functions structure and Firestore database design
+   - Provided deployment command templates and PowerShell syntax conversions
+
+2. ENDPOINT IMPLEMENTATION & TESTING (Medium AI Usage)
+   - Guided on how to structure Express.js routes in Cloud Functions
+   - Explained Firestore query patterns (where, add, update, delete operations)
+   - Tested all 6 endpoints locally and in production
+   - Identified bugs (e.g., Object.keys() needed for validating poll options)
+   - Suggested improvements to error handling and HTTP status codes
+   - Verified vote counting logic and duplicate prevention
+
+3. VALIDATION & ERROR HANDLING (Medium AI Usage)
+   - Explained what validations were needed for each endpoint
+   - Discussed appropriate HTTP status codes (400, 403, 404, 409)
+   - Debugged validation logic for poll creation and voting
+   - Helped fix missing const declarations and variable scope issues
+
+4. FIRESTORE TRIGGER FUNCTION (Light-Medium AI Usage)
+   - Explained how Firestore triggers work (document.onCreate events)
+   - Guided on extracting event data and reading/updating documents
+   - Helped fix the trigger function deployment issues (module initialization)
+   - Tested expiration logic and vote counting in the trigger
+
+5. ANONYMOUS VOTING FEATURE (Medium AI Usage)
+   - Explained the extra credit challenge requirements
+   - Showed how to extract client IP from request headers
+   - Guided on adapting duplicate prevention to use IP instead of user ID
+   - Fixed FieldValue.increment() issues and tested IP-based duplicate prevention
+
+6. DEPLOYMENT & GCP INTEGRATION (Light-Medium AI Usage)
+   - Guided on gcloud functions deploy commands
+   - Explained service account setup and permissions
+   - Helped troubleshoot runtime errors (nodejs18 → nodejs20 upgrade)
+   - Created composite index for the expiring polls query
+   - Verified production deployment and tested all endpoints live
+
+SPECIFIC CODE ASSISTANCE
+------------------------
+
+AREAS WHERE AI WAS MOST HELPFUL:
+- Testing complex queries against both local emulator and production
+- Identifying syntax errors (missing const, wrong API calls)
+- Explaining Firestore FieldValue.increment() usage
+- Converting bash/curl commands to PowerShell format
+- Debugging deployment errors and providing solutions
+- Explaining the distinction between 1st gen and 2nd gen Cloud Functions
+
+AREAS WHERE STUDENT IMPLEMENTED INDEPENDENTLY:
+- Core business logic for all 6 endpoint functions
+- Database schema design and collection structure
+- Poll expiration timestamp logic
+- Vote casting and duplicate prevention queries
+- Firestore trigger implementation
+- Anonymous voting feature using client IP
+
+LEARNING OUTCOMES
+-----------------
+Through this process with AI assistance, the student demonstrated understanding of:
+
+1. Serverless Architecture
+   - Event-driven design with Firestore triggers
+   - Decoupling API and data processing functions
+   - Service account separation with least privilege principle
+
+2. Firestore Database Operations
+   - CRUD operations (Create, Read, Update, Delete)
+   - Querying with multiple where clauses
+   - Composite indexing for complex queries
+   - Atomic field increments for concurrent updates
+
+3. Cloud Functions Development
+   - HTTP-triggered functions with Express.js
+   - Firestore-triggered functions
+   - Service account authentication
+   - Error handling and HTTP status codes
+
+4. API Design
+   - RESTful endpoint design
+   - Input validation
+   - Authorization checks (creator-only deletion)
+   - Duplicate prevention mechanisms
+
+5. Google Cloud Platform
+   - gcloud CLI deployment
+   - Service account management
+   - Firestore emulator usage
+   - Cloud Build and deployment logs
+
+CONCLUSION
+----------
+Claude was used as an educational tool throughout this assignment - providing explanations,
+debugging assistance, and guidance on best practices. The student retained full responsibility
+for implementing the core logic, making architectural decisions, and testing the system.
+
+The AI assistance accelerated the development process by catching errors quickly and providing
+context-specific explanations, while the student maintained ownership of the solution.
