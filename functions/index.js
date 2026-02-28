@@ -76,20 +76,28 @@ app.post("/polls", async (req, res) => {
   }
 });
 
-// POST /polls/{pollId}/vote - Cast a vote
+// POST /polls/{pollId}/vote - Cast a vote (supports both authenticated and anonymous voting)
 app.post("/polls/:pollId/vote", async (req, res) => {
   try {
     const { pollId } = req.params;
     const { voter_id, option_selected } = req.body;
 
-     if(!voter_id || !option_selected) {
-      return res.status(400).json({error: "Missing Fields"});
+     if(!option_selected) {
+      return res.status(400).json({error: "Missing option_selected"});
     }
 
-    // Check if user exists if not return 404
-    const userDoc = await db.collection("users").doc(voter_id).get();
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: "User not found" });
+    // Get voter identifier (either voter_id or client IP for anonymous voting)
+    let actualVoterId;
+    if (voter_id) {
+      // Authenticated voting - verify user exists
+      const userDoc = await db.collection("users").doc(voter_id).get();
+      if (!userDoc.exists) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      actualVoterId = voter_id;
+    } else {
+      // Anonymous voting - use client IP
+      actualVoterId = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     }
 
     // Check if poll exists and is open
@@ -103,14 +111,14 @@ app.post("/polls/:pollId/vote", async (req, res) => {
       return res.status(400).json({ error: "Poll is closed" });
     }
 
-    const existingVote = await db.collection("votes").where("poll_id", "==", pollId).where("voter_id", "==", voter_id).get();
+    const existingVote = await db.collection("votes").where("poll_id", "==", pollId).where("voter_id", "==", actualVoterId).get();
     if (!existingVote.empty) {
       return res.status(409).json({ error: "User has already voted on this poll" });
     }
 
     const newVote = {
       poll_id: pollId,
-      voter_id: voter_id,
+      voter_id: actualVoterId,
       option_selected: option_selected,
       timestamp: new Date().toISOString()
     };
