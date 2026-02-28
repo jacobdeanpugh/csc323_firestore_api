@@ -1,0 +1,17 @@
+node_modules/
+functions/node_modules/
+functions/*/node_modules/
+.env
+.env.local
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+dist/
+build/
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.idea/
+*.iml
