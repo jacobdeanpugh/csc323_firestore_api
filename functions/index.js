@@ -1,11 +1,18 @@
+// Initialize Firebase Admin once
+const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const express = require("express");
 
-// Export a function that receives db and admin as parameters
-module.exports = (db, admin) => {
-  // Create Express app
-  const app = express();
-  app.use(express.json());
+admin.initializeApp();
+const db = admin.firestore();
+
+// Create Express app for pollingAPI
+const app = express();
+app.use(express.json());
+
+// ==========================================
+// Import all endpoints from pollingAPI
+// ==========================================
 
 // POST /users - Create or generate a username
 app.post("/users", async (req, res) => {
@@ -15,13 +22,13 @@ app.post("/users", async (req, res) => {
     if (!existingUser.empty) {
       return res.status(409).json({ error: "Username already exists" });
     }
-    
+
     const newUser = {
       username: username,
       created_at: new Date().toISOString()
     };
     const userRef = await db.collection("users").add(newUser);
-    
+
     res.status(200).json({ ...newUser, id: userRef.id });
 
   } catch (error) {
@@ -45,14 +52,14 @@ app.post("/polls", async (req, res) => {
     if(!(question.length > 0)) {
       return res.status(400).json({error: "Question cannot be empty"});
     }
-    
+
     if(Object.keys(options).length < 2) {
       return res.status(400).json({error: "At least 2 options are required"});
     }
 
     const newPoll = {
       question: question,
-      options: options,
+      options_map: options,
       expiration_timestamp: expiration_time,
       creator_id: creator_id,
       total_votes: 0,
@@ -62,7 +69,7 @@ app.post("/polls", async (req, res) => {
 
     const pollRef = await db.collection("polls").add(newPoll);
 
-    res.status(200).json({ ...newPoll, id: pollRef.id });
+    res.status(201).json({ ...newPoll, id: pollRef.id });
   } catch (error) {
     console.error("Error creating poll:", error);
     res.status(500).json({ error: error.message });
@@ -127,14 +134,14 @@ app.post("/polls/:pollId/vote", async (req, res) => {
 app.get("/polls/:pollId", async (req, res) => {
   try {
     const { pollId } = req.params;
-    
+
     const pollDoc = await db.collection("polls").doc(pollId).get();
 
      if (!pollDoc.exists) {
       return res.status(404).json({ error: "Poll not found" });
     }
     const pollData = pollDoc.data();
-  
+
     const votesQuery = db.collection("votes").where("poll_id", "==", pollId);
     const votesSnapshot = await votesQuery.get();
     const voteCounts = {};
@@ -142,7 +149,7 @@ app.get("/polls/:pollId", async (req, res) => {
       const voteData = doc.data();
       voteCounts[voteData.option_selected] = (voteCounts[voteData.option_selected] || 0) + 1;
     });
-    
+
     res.status(200).json({ ...pollData, vote_counts: voteCounts });
   } catch (error) {
     console.error("Error retrieving poll:", error);
@@ -154,16 +161,16 @@ app.get("/polls/:pollId", async (req, res) => {
 app.get("/polls", async (req, res) => {
   try {
     const { owner, expiresBefore } = req.query;
-    
+
     if(!owner || !expiresBefore) {
       return res.status(400).json({error: "Missing query parameters: owner and expiresBefore are required"});
     }
-  
+
     const pollDocs = await db.collection("polls")
       .where("creator_id", "==", owner)
       .where("expiration_timestamp", "<=", expiresBefore)
       .get();
-   
+
     const polls = [];
     pollDocs.forEach(doc => {
       polls.push({ id: doc.id, ...doc.data() });
@@ -181,7 +188,7 @@ app.get("/polls", async (req, res) => {
 app.delete("/polls/:pollId", async (req, res) => {
   try {
     const { pollId } = req.params;
-    
+
     const creator_id = req.body.creator_id;
 
     if(!creator_id) {
@@ -201,13 +208,12 @@ app.delete("/polls/:pollId", async (req, res) => {
     await db.collection("polls").doc(pollId).delete();
 
     res.status(200).json({ message: "Poll deleted successfully" });
-    
+
   } catch (error) {
     console.error("Error deleting poll:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-  // Export the function
-  return functions.https.onRequest(app);
-};
+// Export the pollingAPI function
+exports.pollingAPI = functions.https.onRequest(app);
